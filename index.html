@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Puzzle Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: inline-block;
+        }
+        
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        
+        .puzzle {
+            display: grid;
+            grid-template-columns: repeat(4, 80px);
+            grid-template-rows: repeat(4, 80px);
+            gap: 2px;
+            background: #333;
+            border: 2px solid #333;
+            margin: 20px auto;
+        }
+        
+        .tile {
+            background: #4CAF50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .tile:hover {
+            background: #45a049;
+            transform: scale(0.98);
+        }
+        
+        .tile.empty {
+            background: #f0f0f0;
+            cursor: default;
+        }
+        
+        .info {
+            margin: 20px 0;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 0 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        .moves {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin: 10px 0;
+        }
+        
+        .message {
+            color: #4CAF50;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Jeu de Puzzle (Taquin)</h1>
+        <div class="puzzle" id="puzzle"></div>
+        <div class="info">
+            <div class="moves">Coups: <span id="moves">0</span></div>
+            <button onclick="newGame()">Nouvelle Partie</button>
+            <button onclick="shuffleBoard()">Mélanger</button>
+        </div>
+        <div id="message" class="message"></div>
+    </div>
+
+    <script>
+        let board = [];
+        let size = 4;
+        let emptyRow, emptyCol;
+        let moves = 0;
+        
+        function initBoard() {
+            board = [];
+            let counter = 1;
+            for (let i = 0; i < size; i++) {
+                board[i] = [];
+                for (let j = 0; j < size; j++) {
+                    board[i][j] = counter++;
+                }
+            }
+            board[size-1][size-1] = 0;
+            emptyRow = size - 1;
+            emptyCol = size - 1;
+            moves = 0;
+            updateMovesDisplay();
+            clearMessage();
+        }
+        
+        function shuffleBoard() {
+            for (let i = 0; i < 200; i++) {
+                let moves = getPossibleMoves();
+                if (moves.length > 0) {
+                    let randomMove = moves[Math.floor(Math.random() * moves.length)];
+                    swap(randomMove.row, randomMove.col);
+                }
+            }
+            moves = 0;
+            updateMovesDisplay();
+            clearMessage();
+            renderBoard();
+        }
+        
+        function getPossibleMoves() {
+            let moves = [];
+            const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+            
+            for (let dir of dirs) {
+                let newRow = emptyRow + dir[0];
+                let newCol = emptyCol + dir[1];
+                if (newRow >= 0 && newRow < size && newCol >= 0 && newCol < size) {
+                    moves.push({row: newRow, col: newCol});
+                }
+            }
+            return moves;
+        }
+        
+        function swap(row, col) {
+            board[emptyRow][emptyCol] = board[row][col];
+            board[row][col] = 0;
+            emptyRow = row;
+            emptyCol = col;
+        }
+        
+        function move(row, col) {
+            if (Math.abs(row - emptyRow) + Math.abs(col - emptyCol) === 1) {
+                swap(row, col);
+                moves++;
+                updateMovesDisplay();
+                renderBoard();
+                
+                if (checkWin()) {
+                    document.getElementById('message').innerHTML = 
+                        `?? Félicitations ! Vous avez gagné en ${moves} coups ! ??`;
+                    document.getElementById('message').style.color = '#4CAF50';
+                }
+                return true;
+            }
+            return false;
+        }
+        
+        function checkWin() {
+            let counter = 1;
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size; j++) {
+                    if (i === size-1 && j === size-1) {
+                        return board[i][j] === 0;
+                    }
+                    if (board[i][j] !== counter++) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        
+        function renderBoard() {
+            const puzzleDiv = document.getElementById('puzzle');
+            puzzleDiv.innerHTML = '';
+            puzzleDiv.style.gridTemplateColumns = `repeat(${size}, 80px)`;
+            puzzleDiv.style.gridTemplateRows = `repeat(${size}, 80px)`;
+            
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size; j++) {
+                    const tile = document.createElement('div');
+                    tile.className = 'tile';
+                    if (board[i][j] === 0) {
+                        tile.className += ' empty';
+                        tile.innerHTML = '';
+                    } else {
+                        tile.innerHTML = board[i][j];
+                    }
+                    tile.addEventListener('click', (function(row, col) {
+                        return function() { move(row, col); };
+                    })(i, j));
+                    puzzleDiv.appendChild(tile);
+                }
+            }
+        }
+        
+        function updateMovesDisplay() {
+            document.getElementById('moves').innerText = moves;
+        }
+        
+        function clearMessage() {
+            document.getElementById('message').innerHTML = '';
+        }
+        
+        function newGame() {
+            initBoard();
+            renderBoard();
+        }
+        
+        // Initialiser le jeu
+        initBoard();
+        renderBoard();
+    </script>
+</body>
+</html>
